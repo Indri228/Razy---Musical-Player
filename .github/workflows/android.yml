@@ -1,0 +1,82 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    name: Build Razy for Android
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: mobile/package.json
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Configure shared Razy server (optional)
+        if: ${{ vars.RAZY_SERVER_URL != '' }}
+        run: |
+          node -e "const fs=require('fs');const c=require('./config.json');c.server=process.env.SRV;fs.writeFileSync('config.json',JSON.stringify(c,null,2))"
+        env:
+          SRV: ${{ vars.RAZY_SERVER_URL }}
+
+      - name: Install Android wrapper dependencies
+        working-directory: mobile
+        run: npm install
+
+      - name: Build web app
+        working-directory: mobile
+        run: node scripts/build-www.js
+
+      - name: Generate Android project
+        working-directory: mobile
+        run: |
+          npx cap add android
+          npx cap sync android
+
+      - name: Generate app icons
+        working-directory: mobile
+        continue-on-error: true
+        run: npx capacitor-assets generate --android --iconBackgroundColor '#0b0716' --iconBackgroundColorDark '#0b0716'
+
+      - name: Install native music library plugin
+        working-directory: mobile
+        shell: bash
+        run: |
+          set -euo pipefail
+          d=android/app/src/main/java/app/razy/player
+          mkdir -p "$d"
+          cp native/DeviceMusicPlugin.java native/MainActivity.java "$d/"
+          f=android/app/src/main/AndroidManifest.xml
+          grep -q 'READ_MEDIA_AUDIO' "$f" || sed -i 's#<application#<uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />\n    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />\n    <application#' "$f"
+          grep -q 'usesCleartextTraffic' "$f" || sed -i 's/<application/<application android:usesCleartextTraffic="true"/' "$f"
+
+      - name: Build debug APK
+        working-directory: mobile/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Razy-Android
+          path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
