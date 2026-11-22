@@ -13,15 +13,22 @@ jobs:
     name: Build Razy for Android
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout source
+      - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Extract supplied Razy project archive
+        run: |
+          test -f Razy-Android-GitHub-Ready.zip || { echo "Upload Razy-Android-GitHub-Ready.zip to the repository root first."; exit 1; }
+          unzip -q Razy-Android-GitHub-Ready.zip -d .
+          test -f razy-desktop/mobile/package.json
+          test -f razy-desktop/main.js
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: mobile/package.json
+          cache-dependency-path: razy-desktop/mobile/package.json
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -32,31 +39,31 @@ jobs:
       - name: Configure shared Razy server (optional)
         if: ${{ vars.RAZY_SERVER_URL != '' }}
         run: |
-          node -e "const fs=require('fs');const c=require('./config.json');c.server=process.env.SRV;fs.writeFileSync('config.json',JSON.stringify(c,null,2))"
+          node -e "const fs=require('fs');const p='razy-desktop/config.json';const c=require('./'+p);c.server=process.env.SRV;fs.writeFileSync(p,JSON.stringify(c,null,2))"
         env:
           SRV: ${{ vars.RAZY_SERVER_URL }}
 
       - name: Install Android wrapper dependencies
-        working-directory: mobile
+        working-directory: razy-desktop/mobile
         run: npm install
 
       - name: Build web app
-        working-directory: mobile
+        working-directory: razy-desktop/mobile
         run: node scripts/build-www.js
 
       - name: Generate Android project
-        working-directory: mobile
+        working-directory: razy-desktop/mobile
         run: |
           npx cap add android
           npx cap sync android
 
       - name: Generate app icons
-        working-directory: mobile
+        working-directory: razy-desktop/mobile
         continue-on-error: true
         run: npx capacitor-assets generate --android --iconBackgroundColor '#0b0716' --iconBackgroundColorDark '#0b0716'
 
       - name: Install native music library plugin
-        working-directory: mobile
+        working-directory: razy-desktop/mobile
         shell: bash
         run: |
           set -euo pipefail
@@ -68,7 +75,7 @@ jobs:
           grep -q 'usesCleartextTraffic' "$f" || sed -i 's/<application/<application android:usesCleartextTraffic="true"/' "$f"
 
       - name: Build debug APK
-        working-directory: mobile/android
+        working-directory: razy-desktop/mobile/android
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
@@ -77,6 +84,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Razy-Android
-          path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          path: razy-desktop/mobile/android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
