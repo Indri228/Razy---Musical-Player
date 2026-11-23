@@ -1,33 +1,42 @@
-# Razy — Musical Player
+# Razy для Android
 
-Razy is an ad-free music player inspired by Spotify, with a desktop app and an Android version.
+Та же программа, что и на компьютере (`../app/index.html`), в оболочке Capacitor.
+Поиск, тексты песен, плейлисты, YouTube, импорт из Spotify и «Треки Razy» работают так же.
+Сетевая логика берётся из `../main.js` при сборке — правки поиска попадают и на телефон.
 
-## Android APK
+## Как получить APK (без Android Studio)
 
-The repository contains a GitHub Actions workflow at `.github/workflows/android.yml`.
+1. Залейте проект в GitHub, как и версию для Windows.
+2. Откройте вкладку **Actions → Build Android APK**. Сборка запускается сама после каждого push или кнопкой **Run workflow**.
+3. Через 5–10 минут внизу страницы запуска будет файл **Razy-Android** (внутри `app-debug.apk`).
+4. Скачайте на телефон и откройте. Android попросит разрешить установку из этого источника.
 
-After the full project source has been uploaded to the repository:
+Адрес сервера «Треки Razy»: переменная репозитория `RAZY_SERVER_URL` (Settings → Variables) или в приложении: Профиль → адрес сервера.
+`http://localhost` на телефоне не работает: нужен адрес с интернета.
 
-1. Open **Actions → Build Android APK**.
-2. Select **Run workflow** (or push a new commit to `main`).
-3. Wait for the workflow to finish successfully.
-4. Open the workflow run and download the **Razy-Android** artifact.
-5. Extract the downloaded ZIP. The Android installer is `app-debug.apk`.
+## Локальная сборка
 
-The APK is debug-signed for testing and manual installation. It is not a Play Store release build.
+```
+cd mobile
+npm install
+node scripts/build-www.js
+npx cap add android
+npx cap sync android
+npx cap open android      # Android Studio → Run
+```
 
-## Required source files
+## Импорт музыки с телефона
 
-The workflow expects the complete project layout, including `app/`, `assets/`, `main.js`, `config.json`, and the `mobile/` directory from the supplied project archive. Uploading only this README and workflow is not enough to build the app.
+Кнопка **Файл** внизу → **Из музыки телефона**: Razy показывает всю музыку из памяти телефона
+(как в стоковом плеере), можно искать, выбрать нужное или «Все» и импортировать в библиотеку.
+Теги и обложки из файлов подхватываются, уже импортированное помечено «в Razy».
+При первом открытии Android спросит доступ «Музыка и аудио». Пункт **Выбрать файлы** — обычный выбор файлов.
+Нативная часть: `native/DeviceMusicPlugin.java` (читает MediaStore), её GitHub Actions копирует в Android-проект при сборке.
 
-## Optional shared music server
+## Что отличается от компьютера
 
-Set the repository variable `RAZY_SERVER_URL` under **Settings → Secrets and variables → Actions → Variables** to configure a public shared Razy server URL during the Android build.
-
-## Project structure
-
-- `app/` — application interface
-- `main.js` — desktop and shared network logic
-- `mobile/` — Capacitor Android wrapper and native music-library plugin
-- `server/` — optional shared music server
-- `.github/workflows/android.yml` — Android APK build
+- Нет Discord Rich Presence (на телефоне его нет).
+- Нет встроенного сервера артистов: нужен общий сервер по адресу.
+- Прокси в приложении скрыт: используйте VPN телефона.
+- Музыка может останавливаться при выключенном экране (ограничение Android WebView, фонового сервиса пока нет).
+- APK подписан отладочным ключом: годится для себя и друзей, для Google Play нужна подпись.
