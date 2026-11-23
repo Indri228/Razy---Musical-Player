@@ -1,0 +1,11 @@
+{
+  "appId": "app.razy.player",
+  "appName": "Razy",
+  "webDir": "www",
+  "backgroundColor": "#0b0716",
+  "server": { "androidScheme": "https", "cleartext": true },
+  "plugins": {
+    "CapacitorHttp": { "enabled": true }
+  },
+  "android": { "allowMixedContent": true }
+}

@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Razy — мини-плеер</title>
+<style>
+:root{--a:#8b5cf6;--b:#d946ef;--g:linear-gradient(135deg,var(--a),var(--b));--tx:#f4f1ff;--mu:#9d95bd}
+*{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
+html,body{width:340px;height:112px;overflow:hidden;background:transparent;font-family:Inter,"Segoe UI",system-ui,sans-serif;color:var(--tx);user-select:none;-webkit-user-select:none}
+.card{position:absolute;inset:0;border-radius:28px;background:linear-gradient(160deg,#1a1233f2,#0d0919f5 75%);border:1px solid #ffffff1f;overflow:hidden;-webkit-app-region:drag;animation:in .45s cubic-bezier(.2,.9,.3,1.1)}
+@keyframes in{from{opacity:0;transform:translateY(24px) scale(.94)}to{opacity:1;transform:none}}
+.card::before{content:"";position:absolute;left:-30px;top:-40px;width:170px;height:170px;border-radius:50%;background:radial-gradient(closest-side,var(--a),transparent);opacity:.28;pointer-events:none}
+button,.pg,.av{-webkit-app-region:no-drag}
+/* обложка с кольцом-визуализатором */
+.av{position:absolute;left:6px;top:2px;width:108px;height:108px;cursor:pointer}
+.av canvas{position:absolute;inset:0;width:108px;height:108px}
+.cv{position:absolute;left:21px;top:21px;width:66px;height:66px;border-radius:50%;background:var(--g) center/cover;display:grid;place-items:center;font-weight:800;font-size:26px;color:#ffffffd9;box-shadow:0 4px 16px #0009,0 0 0 2px #ffffff22;animation:spin 14s linear infinite;animation-play-state:paused}
+body.play.spin .cv{animation-play-state:running}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* текст и кнопки */
+.tx{position:absolute;left:118px;right:12px;top:14px}
+.tt{height:20px;overflow:hidden;white-space:nowrap;font-weight:800;font-size:15px;line-height:20px;position:relative}
+.tt span{display:inline-block;padding-right:34px}
+.tt.mq span{animation:mq 9s linear infinite}
+@keyframes mq{0%,12%{transform:translateX(0)}88%,100%{transform:translateX(var(--sh))}}
+.ar{font-size:12px;color:var(--mu);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.ct{position:absolute;left:118px;right:12px;bottom:16px;display:flex;align-items:center;gap:6px}
+.ct button{border:0;background:none;color:var(--tx);cursor:pointer;display:grid;place-items:center;width:34px;height:34px;border-radius:50%;transition:background .15s,transform .15s}
+.ct button:hover{background:#ffffff18}.ct button:active{transform:scale(.9)}
+.ct svg{width:18px;height:18px;fill:currentColor;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round;stroke-linecap:round}
+.ct .pp{width:42px;height:42px;background:var(--g);box-shadow:0 6px 18px color-mix(in srgb,var(--a) 55%,transparent)}
+.ct .pp:hover{background:var(--g);filter:brightness(1.12)}
+.ct .pp svg{width:20px;height:20px}
+.ct .sp{flex:1}
+.ct .sm{width:28px;height:28px;color:var(--mu)}.ct .sm svg{width:14px;height:14px;fill:none}
+/* прогресс */
+.pg{position:absolute;left:0;right:0;bottom:0;height:9px;cursor:pointer}
+.pg i{position:absolute;left:18px;right:18px;bottom:4px;height:3px;border-radius:3px;background:#ffffff1f;overflow:hidden}
+.pg b{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--g)}
+/* экономия: без анимации */
+body.eco *{animation:none!important;transition:none!important}
+body.eco .card{animation:none}
+</style>
+</head>
+<body class="">
+<div class="card" id="card">
+  <div class="av" id="av" title="Открыть Razy"><canvas id="cv"></canvas><div class="cv" id="cover"></div></div>
+  <div class="tx"><div class="tt" id="tt"><span id="ttx">Ничего не играет</span></div><div class="ar" id="ar"></div></div>
+  <div class="ct">
+    <button id="prev" title="Предыдущий трек"><svg viewBox="0 0 24 24"><path d="M18 5L8 12l10 7z"/><path d="M5 5v14" fill="none"/></svg></button>
+    <button id="pp" class="pp" title="Пауза / играть"><svg viewBox="0 0 24 24" id="ppi"><path d="M7 4.5v15l13-7.5z"/></svg></button>
+    <button id="next" title="Следующий трек"><svg viewBox="0 0 24 24"><path d="M6 5l10 7-10 7z"/><path d="M19 5v14" fill="none"/></svg></button>
+    <span class="sp"></span>
+    <button id="set" class="sm" title="Настройки мини-плеера"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+    <button id="x" class="sm" title="Закрыть мини-плеер"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <div class="pg" id="pg"><i><b id="pb"></b></i></div>
+</div>
+<script>
+const $=s=>document.querySelector(s);
+const B=window.razyMiniWin||{cmd(){},onState(){},onViz(){},onCfg(){}};
+const PLAY='<path d="M7 4.5v15l13-7.5z"/>',PAUSE='<rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/>';
+let st={title:'',artist:'',playing:false,pos:0,dur:0},cfg={viz:true,spin:true},bins=new Uint8Array(64),at=performance.now(),eco=false;
+const cv=$('#cv'),g=cv.getContext('2d'),DPR=Math.max(1,Math.min(2,devicePixelRatio||1));
+cv.width=108*DPR;cv.height=108*DPR;g.scale(DPR,DPR);
+function ring(){
+  g.clearRect(0,0,108,108);
+  const cx=54,cy=54,r0=37,n=56,gr=g.createLinearGradient(0,0,108,108);
+  const cs=getComputedStyle(document.documentElement);gr.addColorStop(0,cs.getPropertyValue('--a'));gr.addColorStop(1,cs.getPropertyValue('--b'));
+  g.lineCap='round';g.lineWidth=2.4;g.strokeStyle=gr;
+  const on=cfg.viz&&!eco;
+  g.globalAlpha=on?.95:.35;g.beginPath();
+  for(let i=0;i<n;i++){
+    const a=i/n*Math.PI*2-Math.PI/2;
+    const j=Math.min(63,Math.floor(Math.abs(i-(n-1)/2)/(n/2)*64));   // симметрично: басы снизу и сверху
+    const v=on?bins[j]/255:0;
+    const h=2+Math.min(1,v*1.15)*13;
+    g.moveTo(cx+Math.cos(a)*r0,cy+Math.sin(a)*r0);g.lineTo(cx+Math.cos(a)*(r0+h),cy+Math.sin(a)*(r0+h));
+  }
+  g.stroke();g.globalAlpha=1;
+}
+function paint(){
+  document.body.classList.toggle('play',!!st.playing);
+  document.body.classList.toggle('spin',cfg.spin!==false);
+  document.body.classList.toggle('eco',!!eco);
+  $('#ppi').innerHTML=st.playing?PAUSE:PLAY;
+  $('#ar').textContent=st.artist||'';
+  const t=$('#tt'),s=$('#ttx');s.textContent=st.title||'Ничего не играет';
+  t.classList.remove('mq');requestAnimationFrame(()=>{const over=s.offsetWidth-t.clientWidth;if(over>0&&!eco){t.style.setProperty('--sh','-'+s.offsetWidth+'px');t.classList.add('mq')}});
+}
+function cover(){
+  const c=$('#cover');
+  if(st.art){c.style.background="url('"+String(st.art).replace(/'/g,"%27")+"') center/cover";c.textContent=''}
+  else{c.style.background=st.bg||'';c.textContent=st.title?(st.title[0]||'♪').toUpperCase():'♪'}
+}
+B.onState(s=>{
+  if(!s)return;const keyChanged=('k' in s)&&s.k!==st.k;
+  st=Object.assign(st,s);at=performance.now();
+  if(s.a)document.documentElement.style.setProperty('--a',s.a);if(s.b)document.documentElement.style.setProperty('--b',s.b);
+  if('eco' in s)eco=!!s.eco;
+  if(keyChanged||'art' in s||'bg' in s)cover();
+  paint();
+});
+B.onCfg(c=>{cfg=Object.assign(cfg,c||{});paint()});
+B.onViz(a=>{if(a&&a.length)bins=a});
+$('#pp').onclick=()=>B.cmd('toggle');$('#next').onclick=()=>B.cmd('next');$('#prev').onclick=()=>B.cmd('prev');
+$('#x').onclick=()=>B.cmd('close');$('#set').onclick=()=>B.cmd('settings');$('#av').onclick=()=>B.cmd('open');
+$('#pg').onclick=e=>{const r=$('#pg').getBoundingClientRect(),f=Math.max(0,Math.min(1,(e.clientX-r.left-18)/(r.width-36)));B.cmd({seek:f})};
+// плавный прогресс между сообщениями (основное окно шлёт позицию раз в секунду)
+function loop(){
+  const p=st.dur?Math.min(1,(st.pos+(st.playing?(performance.now()-at)/1000:0))/st.dur):0;
+  $('#pb').style.width=(p*100).toFixed(2)+'%';
+  ring();
+  setTimeout(()=>requestAnimationFrame(loop),st.playing&&cfg.viz&&!eco?16:200);
+}
+paint();cover();loop();
+</script>
+</body>
+</html>
