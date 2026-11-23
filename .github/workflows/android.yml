@@ -1,3 +1,4 @@
+
 name: Build Android APK
 
 on:
@@ -12,6 +13,7 @@ jobs:
   android:
     name: Build Razy for Android
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -19,7 +21,7 @@ jobs:
       - name: Extract supplied Razy project archive
         run: |
           test -f Razy-Android-GitHub-Ready.zip || { echo "Upload Razy-Android-GitHub-Ready.zip to the repository root first."; exit 1; }
-          unzip -q Razy-Android-GitHub-Ready.zip -d .
+          unzip -o -q Razy-Android-GitHub-Ready.zip -d .
           test -f razy-desktop/mobile/package.json
           test -f razy-desktop/main.js
 
